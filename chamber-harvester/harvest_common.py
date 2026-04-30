@@ -245,3 +245,16 @@ def load_csv_quality(path: str, chamber_host: str = "") -> Tuple[int, int, Dict[
         if d == chamber_host and n > 2: repeated_email_penalty += n
     quality = rows * 10 + complete * 4 - duplicates * 15 - bad_names * 20 - repeated_site_penalty * 10 - repeated_email_penalty * 10
     return rows, quality, {"duplicates": duplicates, "bad_names": bad_names, "complete": complete}
+    def open_csv_writer(path: str, fieldnames: list):
+    """
+    Opens a CSV file for incremental (append-safe) writing.
+    Writes the header only if the file is new or empty.
+    Returns (file_handle, csv.DictWriter).
+    """
+    import os
+    file_exists = os.path.isfile(path) and os.path.getsize(path) > 0
+    fh = open(path, "a", newline="", encoding="utf-8")
+    writer = csv.DictWriter(fh, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+    return fh, writer
