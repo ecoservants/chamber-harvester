@@ -255,7 +255,7 @@ def main() -> int:
             scores[n] = quality
             probe_out[n] = out
             probe_stats[n] = stats
-            print(f"  - {n:10s}: {rows} rows, quality {quality}, dup {stats.get("duplicates",0)}, bad names {stats.get("bad_names",0)}")
+            print(f"  - {n:10s}: {rows} rows, quality {quality}, dup {stats.get(duplicates',0)}, bad names {stats.get('bad_names',0)}")
             if args.debug_probe_output and out.strip():
                 print(out.strip())
     else:
