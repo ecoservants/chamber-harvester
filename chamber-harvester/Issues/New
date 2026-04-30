@@ -1,0 +1,10 @@
+I'd like to take this on. 
+
+After reviewing the codebase, the harvesters currently collect all rows in memory and write the CSV once at the end. This means any crash, timeout, or keyboard interrupt loses all progress.
+
+My proposed fix:
+- Add an `open_csv_writer()` helper in `harvest_common.py` that opens the file in append mode and writes the header only if the file is new/empty
+- Call this at the start of each harvester and flush after every row is scraped
+- This ensures partial runs are always recoverable
+
+I'll submit a PR against this issue.
