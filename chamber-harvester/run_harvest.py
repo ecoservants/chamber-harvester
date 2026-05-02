@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
-from harvest_common import load_csv_quality, require_safe_url
+from harvest_common import load_csv_quality, require_safe_url, log_info, log_error, log_summary
 
 HERE = Path(__file__).resolve().parent
 
@@ -197,17 +197,14 @@ def main() -> int:
     try:
         require_safe_url(args.url, "directory URL")
     except ValueError as exc:
-        print(exc)
+        log_error("validation", str(exc))
         return 2
     out_csv = Path(args.out).expanduser().resolve()
 
     # Validate scripts exist
     missing = [fname for _name, fname in CANDIDATES if not (HERE / fname).exists()]
     if missing:
-        print("Missing required scripts in the same folder as run_harvest.py:")
-        for m in missing:
-            print(f"  - {m}")
-        print("Put run_harvest.py in the same folder as the harvest_*.py scripts.")
+        log_error("setup", f"Missing required scripts: {', '.join(missing)}")
         return 2
 
     lookup: Dict[str, Path] = {name: (HERE / fname) for name, fname in CANDIDATES}
