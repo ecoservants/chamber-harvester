@@ -24,6 +24,7 @@ from harvest_common import (
     safe_goto,
     row_key,
     should_keep_row,
+    log_info, log_error, log_summary, log_page_visit, log_row_extracted
 )
 
 DETAIL_HINT_RE = re.compile(r"memberdirectory|memberprofile|listing|business", re.I)
@@ -174,12 +175,12 @@ def scrape(dbid2: str, out: str, headless: bool, delay: float, timeout_ms: int, 
                 seen.add(k)
                 all_rows.append(r)
                 added += 1
-            print(f"[{letter}] added {added}, total {len(all_rows)}")
+            log_info(f"[{letter}] added {added}, total {len(all_rows)}")
             write_csv(out, all_rows)
             if delay:
                 time.sleep(delay)
         browser.close()
-    print(f"Saved {len(all_rows)} rows -> {out}")
+    log_summary({"rows_saved": len(all_rows), "output_file": out})
 
 
 def main():

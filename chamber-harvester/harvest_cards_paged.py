@@ -18,7 +18,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Optional, Tuple, Set
 from urllib.parse import urljoin, urldefrag, urlparse
 
-from harvest_common import choose_best_website, clean_address, normalize_url, row_key, should_keep_row, host_of, require_safe_url, safe_goto
+from harvest_common import choose_best_website, clean_address, normalize_url, row_key, should_keep_row, host_of, require_safe_url, safe_goto, log_info, log_error, log_summary, log_page_visit, log_row_extracted
 
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, Page, Frame
@@ -169,7 +169,7 @@ def click_next_or_number(ctx: Page | Frame, timeout_ms: int, current_page: int) 
                 ctx.page.wait_for_timeout(900)
                 now = ctx.url if hasattr(ctx, "url") else ctx.page.url
                 if urlparse(now).netloc.lower() != allowed_host:
-                    print("Off-site navigation blocked. Stopping pagination.")
+                    log_error("pagination", "Off-site navigation blocked")
                     return False
                 return True
             except Exception:
@@ -184,7 +184,7 @@ def click_next_or_number(ctx: Page | Frame, timeout_ms: int, current_page: int) 
             ctx.page.wait_for_timeout(900)
             now = ctx.url if hasattr(ctx, "url") else ctx.page.url
             if urlparse(now).netloc.lower() != allowed_host:
-                print("Off-site navigation blocked. Stopping pagination.")
+                log_error("pagination", "Off-site navigation blocked")
                 return False
             return True
         except Exception:
@@ -204,7 +204,7 @@ def scrape(url: str, out: str, headless: bool, max_pages: int, delay: float, tim
         page.wait_for_timeout(1200)
 
         active, base_url = pick_best_context(page)
-        print(f"Using context URL: {base_url}")
+        log_info(f"Using context URL: {base_url}")
 
         try:
             current_page_num = 1
@@ -221,7 +221,7 @@ def scrape(url: str, out: str, headless: bool, max_pages: int, delay: float, tim
                     rows.append(c)
                     added += 1
 
-                print(f"[page {i}] added {added}, total {len(rows)}")
+                log_info(f"Page {i}: added {added}, total {len(rows)}")
                 write_csv(out, rows)
 
                 if not click_next_or_number(active, timeout_ms, current_page_num):
@@ -230,9 +230,9 @@ def scrape(url: str, out: str, headless: bool, max_pages: int, delay: float, tim
                 if delay:
                     time.sleep(delay)
         except KeyboardInterrupt:
-            print("\nInterrupted. Saving partial results...")
+            log_info("Interrupted. Saving partial results...")
         write_csv(out, rows)
-        print(f"Saved {len(rows)} rows -> {out}")
+        log_summary({"rows_saved": len(rows), "output_file": out})
         browser.close()
 
 def main():

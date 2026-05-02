@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import csv
-import ipaddress
+import csv
 import re
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urldefrag, urlparse, urlunparse
 
 EMAIL_RE = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
@@ -245,3 +243,56 @@ def load_csv_quality(path: str, chamber_host: str = "") -> Tuple[int, int, Dict[
         if d == chamber_host and n > 2: repeated_email_penalty += n
     quality = rows * 10 + complete * 4 - duplicates * 15 - bad_names * 20 - repeated_site_penalty * 10 - repeated_email_penalty * 10
     return rows, quality, {"duplicates": duplicates, "bad_names": bad_names, "complete": complete}
+
+
+# Shared logging utility for consistent harvest diagnostics
+from pathlib import Path
+
+_log_file: Optional[Path] = None
+
+def set_log_file(path: str) -> None:
+    """Set optional log file path for writing logs."""
+    global _log_file
+    _log_file = Path(path) if path else None
+
+def _log(msg: str) -> None:
+    """Internal log function: print to console and optionally to file."""
+    print(f"[HARVEST] {msg}")
+    if _log_file:
+        try:
+            with _log_file.open("a", encoding="utf-8") as f:
+                f.write(f"{msg}\n")
+        except Exception:
+            pass  # Ignore file write errors
+
+def log_info(msg: str) -> None:
+    """Log general information."""
+    _log(msg)
+
+def log_page_visit(url: str) -> None:
+    """Log a page visit."""
+    _log(f"Visiting page: {url}")
+
+def log_row_extracted(count: int, row_data: Dict[str, str]) -> None:
+    """Log row extraction."""
+    name = row_data.get("name", "")
+    _log(f"Extracted row {count}: {name}")
+
+def log_skip_unsafe_url(url: str, reason: str) -> None:
+    """Log skipped unsafe URL."""
+    _log(f"Skipped unsafe URL: {url} ({reason})")
+
+def log_failed_profile(url: str, reason: str) -> None:
+    """Log failed profile load."""
+    _log(f"Failed profile load: {url} ({reason})")
+
+def log_error(context: str, exc: str) -> None:
+    """Log an error with context."""
+    _log(f"Error in {context}: {exc}")
+
+def log_summary(summary: Dict[str, Any]) -> None:
+    """Log final run summary."""
+    lines = ["Run summary:"]
+    for k, v in summary.items():
+        lines.append(f"  {k}: {v}")
+    _log("\n".join(lines))

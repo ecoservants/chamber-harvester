@@ -29,7 +29,7 @@ from urllib.parse import urljoin, urldefrag, urlparse, urlencode, parse_qs, urls
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, Page, Frame
 
-from harvest_common import normalize_url, require_safe_url, safe_goto
+from harvest_common import normalize_url, require_safe_url, safe_goto, log_info, log_error, log_summary, log_page_visit, log_row_extracted
 
 PHONE_RE = re.compile(r"(?:(?:\+?1\s*)?(?:\(\s*\d{3}\s*\)|\d{3})[-.\s]*)\d{3}[-.\s]*\d{4}")
 BAD_LINK_RE = re.compile(r"^(javascript:|#)$", re.I)
@@ -298,7 +298,7 @@ def click_next(ctx: Page | Frame) -> bool:
             ctx.page.wait_for_timeout(900)
             now = ctx.url if hasattr(ctx, "url") else ctx.page.url
             if urlparse(now).netloc.lower() != allowed_host:
-                print("Off-site navigation blocked. Stopping pagination.")
+                log_error("pagination", "Off-site navigation blocked")
                 return False
             return True
         except Exception:
@@ -317,7 +317,7 @@ def click_next(ctx: Page | Frame) -> bool:
                     ctx.page.wait_for_timeout(900)
                     now = ctx.url if hasattr(ctx, "url") else ctx.page.url
                     if urlparse(now).netloc.lower() != allowed_host:
-                        print("Off-site navigation blocked. Stopping pagination.")
+                        log_error("pagination", "Off-site navigation blocked")
                         return False
                     return True
     except Exception:
@@ -360,7 +360,7 @@ def scrape_one_directory(page: Page, profile_page: Page, start_url: str, out: st
             if delay:
                 time.sleep(delay)
 
-        print(f"  [page] profiles added {added}, total {len(rows)}")
+        log_info(f"Page: profiles added {added}, total {len(rows)}")
         write_csv(out, rows)
 
         if len(rows) >= max_profiles:
@@ -392,7 +392,7 @@ def scrape(url: str, out: str, headless: bool, max_pages: int, max_profiles: int
 
         alpha_urls = discover_alpha_urls(active, base_url) if alpha else []
         if alpha_urls:
-            print(f"Detected alpha directory with {len(alpha_urls)} letters.")
+            log_info(f"Detected alpha directory with {len(alpha_urls)} letters.")
             start_urls = alpha_urls
         else:
             start_urls = [url]
@@ -402,17 +402,17 @@ def scrape(url: str, out: str, headless: bool, max_pages: int, max_profiles: int
                 if len(start_urls) > 1:
                     letter = SEARCHALPHA_RE.search(start_url)
                     tag = f"{letter.group(1).lower()}" if letter else str(i)
-                    print(f"[alpha {tag}] {start_url}")
+                    log_info(f"[alpha {tag}] {start_url}")
                 scrape_one_directory(page, profile_page, start_url, out, seen_profiles, rows, max_pages, max_profiles, delay, timeout_ms, source_url=url)
                 write_csv(out, rows)
                 if len(rows) >= max_profiles:
-                    print("Reached --max-profiles limit. Stopping.")
+                    log_info("Reached --max-profiles limit. Stopping.")
                     break
         except KeyboardInterrupt:
-            print("\nInterrupted. Saving partial results...")
+            log_info("Interrupted. Saving partial results.")
 
         write_csv(out, rows)
-        print(f"Saved {len(rows)} rows -> {out}")
+        log_summary({"rows_saved": len(rows), "output_file": out})
         browser.close()
 
 def main():

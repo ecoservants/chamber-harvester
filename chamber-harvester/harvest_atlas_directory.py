@@ -27,7 +27,7 @@ from urllib.parse import urljoin, urlparse
 
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 
-from harvest_common import choose_best_website, clean_address, host_of, maybe_blank_chamber_email, maybe_extract_email, normalize_url, row_key, should_keep_row, require_safe_url, safe_goto
+from harvest_common import choose_best_website, clean_address, host_of, maybe_blank_chamber_email, maybe_extract_email, normalize_url, row_key, should_keep_row, require_safe_url, safe_goto, log_info, log_error, log_summary, log_page_visit, log_row_extracted
 
 
 CATEGORY_RE = re.compile(r"/atlas/directory/category/", re.I)
@@ -272,7 +272,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         browser.close()
 
     write_csv(args.out, all_rows)
-    print(f"Saved {len(all_rows)} rows -> {args.out}")
+    log_summary({"rows_saved": len(all_rows), "output_file": args.out})
     return 0
 
 
